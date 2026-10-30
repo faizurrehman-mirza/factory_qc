@@ -1,0 +1,223 @@
+from django.core.management.base import BaseCommand
+from django.utils import timezone
+from datetime import timedelta
+
+from masters.models import Factory, Part, Machine, Gauge
+from accounts.models import User
+
+
+class Command(BaseCommand):
+    help = "Load sample data for easy testing of the Factory QC system"
+
+    def handle(self, *args, **kwargs):
+        self.stdout.write(self.style.SUCCESS("Starting to load sample data...\n"))
+
+        # -------------------------------------------------
+        # 1. Create Factories
+        # -------------------------------------------------
+        factory1, _ = Factory.objects.get_or_create(
+            code="PUNE-01",
+            defaults={
+                "name": "Main Manufacturing Plant - Pune",
+                "location": "Pune, Maharashtra",
+                "is_active": True,
+            }
+        )
+
+        factory2, _ = Factory.objects.get_or_create(
+            code="HT-01",
+            defaults={
+                "name": "Heat Treatment Unit",
+                "location": "Pune, Maharashtra",
+                "is_active": True,
+            }
+        )
+        self.stdout.write("  ✓ Factories created")
+
+        # -------------------------------------------------
+        # 2. Create Parts
+        # -------------------------------------------------
+        Part.objects.get_or_create(
+            part_number="SHAFT-25MM",
+            defaults={
+                "name": "Precision Shaft 25mm",
+                "description": "High precision shaft used in gearboxes",
+                "is_active": True,
+            }
+        )
+
+        Part.objects.get_or_create(
+            part_number="GEAR-A12",
+            defaults={
+                "name": "Spur Gear Type A12",
+                "description": "Spur gear for transmission assembly",
+                "is_active": True,
+            }
+        )
+
+        Part.objects.get_or_create(
+            part_number="HOUSING-CAST",
+            defaults={
+                "name": "Casting Housing",
+                "description": "Main housing casting",
+                "is_active": True,
+            }
+        )
+        self.stdout.write("  ✓ Parts created")
+
+        # -------------------------------------------------
+        # 3. Create Machines
+        # -------------------------------------------------
+        Machine.objects.get_or_create(
+            code="CNC-04",
+            defaults={
+                "factory": factory1,
+                "name": "CNC Lathe #04",
+                "status": Machine.Status.ACTIVE,
+                "last_pm_date": timezone.now().date() - timedelta(days=2),
+                "pm_due_days": 7,
+            }
+        )
+
+        Machine.objects.get_or_create(
+            code="VMC-02",
+            defaults={
+                "factory": factory1,
+                "name": "VMC Station #02",
+                "status": Machine.Status.ACTIVE,
+                "last_pm_date": timezone.now().date(),
+                "pm_due_days": 1,
+            }
+        )
+
+        Machine.objects.get_or_create(
+            code="HT-OVEN-01",
+            defaults={
+                "factory": factory2,
+                "name": "Heat Treat Oven #01",
+                "status": Machine.Status.ACTIVE,
+                "last_pm_date": timezone.now().date() - timedelta(days=10),
+                "pm_due_days": 7,
+            }
+        )
+        self.stdout.write("  ✓ Machines created")
+
+        # -------------------------------------------------
+        # 4. Create Gauges
+        # -------------------------------------------------
+        Gauge.objects.get_or_create(
+            serial_number="VC-104",
+            defaults={
+                "name": "Vernier Caliper 0-150mm",
+                "gauge_type": Gauge.GaugeType.VERNIER,
+                "calibration_expiry_date": timezone.now().date() + timedelta(days=180),
+                "is_active": True,
+            }
+        )
+
+        Gauge.objects.get_or_create(
+            serial_number="MM-12",
+            defaults={
+                "name": "Digital Micrometer 0-25mm",
+                "gauge_type": Gauge.GaugeType.MICROMETER,
+                "calibration_expiry_date": timezone.now().date() + timedelta(days=90),
+                "is_active": True,
+            }
+        )
+
+        # Expired gauge for testing calibration lock
+        Gauge.objects.get_or_create(
+            serial_number="VC-099",
+            defaults={
+                "name": "Old Vernier Caliper (Expired)",
+                "gauge_type": Gauge.GaugeType.VERNIER,
+                "calibration_expiry_date": timezone.now().date() - timedelta(days=30),
+                "is_active": True,
+            }
+        )
+        self.stdout.write("  ✓ Gauges created")
+
+        # -------------------------------------------------
+        # 5. Create Users
+        # Only ONE user will have access to Django Admin
+        # -------------------------------------------------
+
+        # Main Admin / Plant Manager (ONLY user who can login to /admin/)
+        admin_user, created = User.objects.get_or_create(
+            username="admin",
+            defaults={
+                "email": "admin@zapuza.com",
+                "role": User.Role.PLANT_MANAGER,
+                "first_name": "System",
+                "last_name": "Admin",
+                "employee_id": "EMP000",
+                "is_staff": True,
+                "is_superuser": True,
+            }
+        )
+        if created:
+            admin_user.set_password("Admin@1234")
+            admin_user.save()
+
+        # Other users (NO access to Django Admin)
+        other_users = [
+            {
+                "username": "quality_engineer",
+                "email": "qe@zapuza.com",
+                "role": User.Role.QUALITY_ENGINEER,
+                "first_name": "Priya",
+                "last_name": "Patel",
+                "employee_id": "EMP002",
+            },
+            {
+                "username": "quality_manager",
+                "email": "qm@zapuza.com",
+                "role": User.Role.QUALITY_MANAGER,
+                "first_name": "Rahul",
+                "last_name": "Verma",
+                "employee_id": "EMP003",
+            },
+            {
+                "username": "supervisor",
+                "email": "ss@zapuza.com",
+                "role": User.Role.SHIFT_SUPERVISOR,
+                "first_name": "Suresh",
+                "last_name": "Kumar",
+                "employee_id": "EMP004",
+            },
+            {
+                "username": "inspector",
+                "email": "fi@zapuza.com",
+                "role": User.Role.FLOOR_INSPECTOR,
+                "first_name": "Neha",
+                "last_name": "Singh",
+                "employee_id": "EMP005",
+            },
+        ]
+
+        for data in other_users:
+            user, created = User.objects.get_or_create(
+                username=data["username"],
+                defaults={
+                    "email": data["email"],
+                    "role": data["role"],
+                    "first_name": data["first_name"],
+                    "last_name": data["last_name"],
+                    "employee_id": data["employee_id"],
+                    "is_staff": False,       # Important: No admin access
+                    "is_superuser": False,
+                }
+            )
+            if created:
+                user.set_password("Test@1234")
+                user.save()
+
+        self.stdout.write("  ✓ Users created")
+        self.stdout.write("")
+        self.stdout.write(self.style.SUCCESS("Sample data loaded successfully!"))
+        self.stdout.write("")
+        self.stdout.write(self.style.WARNING("Django Admin Login (only one account has access):"))
+        self.stdout.write("  Username : admin")
+        self.stdout.write("  Password : Admin@1234")
+        self.stdout.write("")
+        self.stdout.write("Other users (no admin access) password: Test@1234")
