@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from masters.models import Factory, Part, Machine, Gauge
 from accounts.models import User
+from inspections.models import ChecklistTemplate, TemplateField
 
 
 class Command(BaseCommand):
@@ -125,7 +126,6 @@ class Command(BaseCommand):
             }
         )
 
-        # Expired gauge for testing calibration lock
         Gauge.objects.get_or_create(
             serial_number="VC-099",
             defaults={
@@ -139,10 +139,7 @@ class Command(BaseCommand):
 
         # -------------------------------------------------
         # 5. Create Users
-        # Only ONE user will have access to Django Admin
         # -------------------------------------------------
-
-        # Main Admin / Plant Manager (ONLY user who can login to /admin/)
         admin_user, created = User.objects.get_or_create(
             username="admin",
             defaults={
@@ -159,7 +156,6 @@ class Command(BaseCommand):
             admin_user.set_password("Admin@1234")
             admin_user.save()
 
-        # Other users (NO access to Django Admin)
         other_users = [
             {
                 "username": "quality_engineer",
@@ -204,7 +200,7 @@ class Command(BaseCommand):
                     "first_name": data["first_name"],
                     "last_name": data["last_name"],
                     "employee_id": data["employee_id"],
-                    "is_staff": False,       # Important: No admin access
+                    "is_staff": False,
                     "is_superuser": False,
                 }
             )
@@ -213,11 +209,101 @@ class Command(BaseCommand):
                 user.save()
 
         self.stdout.write("  ✓ Users created")
+
+        # -------------------------------------------------
+        # 6. Create Sample Checklist Templates
+        # -------------------------------------------------
+        try:
+            shaft = Part.objects.get(part_number="SHAFT-25MM")
+            gear = Part.objects.get(part_number="GEAR-A12")
+        except Part.DoesNotExist:
+            self.stdout.write(self.style.ERROR("Parts not found."))
+            return
+
+        # Template 1 - Shaft
+        template1, created = ChecklistTemplate.objects.get_or_create(
+            part=shaft,
+            name="Final PDI - Shaft 25mm",
+            revision="A",
+            defaults={
+                "status": ChecklistTemplate.Status.ACTIVE,
+                "version_notes": "Initial version for assessment"
+            }
+        )
+
+        if created:
+            TemplateField.objects.create(
+                template=template1,
+                sequence=1,
+                label="Shaft Outer Diameter",
+                field_type=TemplateField.FieldType.DIMENSION,
+                nominal_value=25.000,
+                upper_tolerance=0.050,
+                lower_tolerance=0.020,
+                unit="mm",
+                is_ctq=True,
+                is_required=True,
+                help_text="Measure at mid-point of the shaft"
+            )
+            TemplateField.objects.create(
+                template=template1,
+                sequence=2,
+                label="Surface Roughness",
+                field_type=TemplateField.FieldType.MAX_THRESHOLD,
+                threshold_value=0.8,
+                unit="Ra",
+                is_ctq=False,
+                is_required=True
+            )
+            TemplateField.objects.create(
+                template=template1,
+                sequence=3,
+                label="Visual - Free of Burrs",
+                field_type=TemplateField.FieldType.VISUAL,
+                is_ctq=False,
+                is_required=True,
+                help_text="Check edges carefully"
+            )
+
+        # Template 2 - Gear
+        template2, created = ChecklistTemplate.objects.get_or_create(
+            part=gear,
+            name="In-Process Check - Gear A12",
+            revision="A",
+            defaults={
+                "status": ChecklistTemplate.Status.ACTIVE,
+                "version_notes": "Initial version"
+            }
+        )
+
+        if created:
+            TemplateField.objects.create(
+                template=template2,
+                sequence=1,
+                label="Pitch Diameter",
+                field_type=TemplateField.FieldType.DIMENSION,
+                nominal_value=48.000,
+                upper_tolerance=0.030,
+                lower_tolerance=0.030,
+                unit="mm",
+                is_ctq=True,
+                is_required=True
+            )
+            TemplateField.objects.create(
+                template=template2,
+                sequence=2,
+                label="Visual - Tooth Damage",
+                field_type=TemplateField.FieldType.VISUAL,
+                is_ctq=True,
+                is_required=True
+            )
+
+        self.stdout.write("  ✓ Sample Checklist Templates created")
         self.stdout.write("")
         self.stdout.write(self.style.SUCCESS("Sample data loaded successfully!"))
         self.stdout.write("")
-        self.stdout.write(self.style.WARNING("Django Admin Login (only one account has access):"))
+        self.stdout.write(self.style.WARNING("Django Admin Login:"))
         self.stdout.write("  Username : admin")
         self.stdout.write("  Password : Admin@1234")
         self.stdout.write("")
-        self.stdout.write("Other users (no admin access) password: Test@1234")
+        self.stdout.write("Other users password: Test@1234")
