@@ -5,6 +5,7 @@ from datetime import timedelta
 from masters.models import Factory, Part, Machine, Gauge
 from accounts.models import User
 from inspections.models import ChecklistTemplate, TemplateField
+from travelers.models import JobTraveler, ProcessOperation
 
 
 class Command(BaseCommand):
@@ -297,6 +298,83 @@ class Command(BaseCommand):
                 is_ctq=True,
                 is_required=True
             )
+
+                # -------------------------------------------------
+        # 7. Create Sample Job Travelers
+        # -------------------------------------------------
+        try:
+            shaft = Part.objects.get(part_number="SHAFT-25MM")
+            gear = Part.objects.get(part_number="GEAR-A12")
+            cnc_machine = Machine.objects.get(code="CNC-04")
+            vmc_machine = Machine.objects.get(code="VMC-02")
+            shaft_template = ChecklistTemplate.objects.filter(part=shaft).first()
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"Error loading related data: {e}"))
+            return
+
+        # Traveler 1 - Shaft
+        traveler1, created = JobTraveler.objects.get_or_create(
+            traveler_number="JT-2026-001",
+            defaults={
+                "part": shaft,
+                "quantity": 50,
+                "status": JobTraveler.Status.IN_PROGRESS,
+                "checklist_template": shaft_template,
+                "notes": "Sample traveler for assessment"
+            }
+        )
+
+        if created:
+            ProcessOperation.objects.create(
+                traveler=traveler1,
+                sequence=10,
+                name="CNC Rough Turning",
+                machine=cnc_machine,
+                status=ProcessOperation.Status.COMPLETED
+            )
+            ProcessOperation.objects.create(
+                traveler=traveler1,
+                sequence=20,
+                name="CNC Finish Turning",
+                machine=cnc_machine,
+                status=ProcessOperation.Status.IN_PROGRESS
+            )
+            ProcessOperation.objects.create(
+                traveler=traveler1,
+                sequence=30,
+                name="Final Inspection (PDI)",
+                machine=None,
+                status=ProcessOperation.Status.PENDING
+            )
+
+        # Traveler 2 - Gear
+        traveler2, created = JobTraveler.objects.get_or_create(
+            traveler_number="JT-2026-002",
+            defaults={
+                "part": gear,
+                "quantity": 30,
+                "status": JobTraveler.Status.CREATED,
+                "notes": "Second sample traveler"
+            }
+        )
+
+        if created:
+            ProcessOperation.objects.create(
+                traveler=traveler2,
+                sequence=10,
+                name="VMC Roughing",
+                machine=vmc_machine,
+                status=ProcessOperation.Status.PENDING
+            )
+            ProcessOperation.objects.create(
+                traveler=traveler2,
+                sequence=20,
+                name="Final Inspection",
+                machine=None,
+                status=ProcessOperation.Status.PENDING
+            )
+
+        self.stdout.write("  ✓ Sample Job Travelers created")
 
         self.stdout.write("  ✓ Sample Checklist Templates created")
         self.stdout.write("")
