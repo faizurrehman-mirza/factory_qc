@@ -146,3 +146,155 @@ class TemplateField(models.Model):
 
     def __str__(self):
         return f"{self.sequence}. {self.label}"
+
+from django.conf import settings
+from travelers.models import JobTraveler, ProcessOperation
+from masters.models import Machine, Gauge
+
+
+class InspectionSession(models.Model):
+    """
+    One inspection activity performed by a Floor Inspector
+    on a specific Job Traveler.
+    """
+
+    class Status(models.TextChoices):
+        IN_PROGRESS = "IN_PROGRESS", "In Progress"
+        SUBMITTED = "SUBMITTED", "Submitted"
+        APPROVED = "APPROVED", "Approved"
+        REJECTED = "REJECTED", "Rejected"
+        CONCESSION = "CONCESSION", "Conditional Concession"
+
+    traveler = models.ForeignKey(
+        JobTraveler,
+        on_delete=models.PROTECT,
+        related_name="inspection_sessions"
+    )
+
+    template = models.ForeignKey(
+        ChecklistTemplate,
+        on_delete=models.PROTECT,
+        related_name="sessions"
+    )
+
+    machine = models.ForeignKey(
+        Machine,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="inspection_sessions"
+    )
+
+    inspector = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="inspections_done"
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.IN_PROGRESS
+    )
+
+    started_at = models.DateTimeField(auto_now_add=True)
+    submitted_at = models.DateTimeField(null=True, blank=True)
+
+    remarks = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "Inspection Session"
+        verbose_name_plural = "Inspection Sessions"
+        ordering = ["-started_at"]
+
+    def __str__(self):
+        return f"Inspection of {self.traveler.traveler_number} by {self.inspector}"
+
+
+class Measurement(models.Model):
+    """
+    One measurement / check performed during an Inspection Session.
+    """
+
+    class Result(models.TextChoices):
+        PASS = "PASS", "Pass"
+        FAIL = "FAIL", "Fail"
+        NA = "NA", "Not Applicable"
+
+    session = models.ForeignKey(
+        InspectionSession,
+        on_delete=models.CASCADE,
+        related_name="measurements"
+    )
+
+    template_field = models.ForeignKey(
+        TemplateField,
+        on_delete=models.PROTECT,
+        related_name="measurements"
+    )
+
+    # Actual value entered by inspector (for dimension / threshold)
+    measured_value = models.DecimalField(
+        max_digits=10,
+        decimal_places=3,
+        null=True,
+        blank=True
+    )
+
+    # For visual checks
+    visual_result = models.CharField(
+        max_length=10,
+        choices=Result.choices,
+        null=True,
+        blank=True
+    )
+
+    result = models.CharField(
+        max_length=10,
+        choices=Result.choices,
+        default=Result.NA
+    )
+
+    gauge = models.ForeignKey(
+        Gauge,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="measurements"
+    )
+
+    remarks = models.CharField(max_length=255, blank=True)
+
+    measured_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Measurement"
+        verbose_name_plural = "Measurements"
+        ordering = ["template_field__sequence"]
+
+    def __str__(self):
+        return f"{self.template_field.label} - {self.result}"
+
+
+class DefectPhoto(models.Model):
+    """
+    Photo taken when a measurement is out of tolerance.
+    """
+
+    measurement = models.ForeignKey(
+        Measurement,
+        on_delete=models.CASCADE,
+        related_name="photos"
+    )
+
+    image = models.ImageField(upload_to="defect_photos/")
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    caption = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        verbose_name = "Defect Photo"
+        verbose_name_plural = "Defect Photos"
+
+    def __str__(self):
+        return f"Photo for {self.measurement}"
