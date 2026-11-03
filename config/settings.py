@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'masters',
     'inspections',
     'travelers',
+    'shipping',
 ]
 
 MIDDLEWARE = [
