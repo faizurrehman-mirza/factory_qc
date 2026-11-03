@@ -321,6 +321,12 @@ class Measurement(models.Model):
         return self.result
 
     def save(self, *args, **kwargs):
+        # Validate gauge if one is selected
+        if self.gauge:
+            from .services import validate_gauge
+            validate_gauge(self.gauge)
+
+        # Calculate Pass/Fail
         self.calculate_result()
         super().save(*args, **kwargs)
 

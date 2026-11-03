@@ -48,6 +48,19 @@ class GatePass(models.Model):
     def __str__(self):
         return self.gate_pass_number
 
+    def save(self, *args, **kwargs):
+        if self.status == self.Status.RELEASED:
+            allowed, reason = self.can_be_released()
+            if not allowed:
+                from django.core.exceptions import ValidationError
+                raise ValidationError(f"Cannot release Gate Pass: {reason}")
+
+            if not self.released_at:
+                from django.utils import timezone
+                self.released_at = timezone.now()
+
+        super().save(*args, **kwargs)
+
     
     def can_be_released(self):
         """
