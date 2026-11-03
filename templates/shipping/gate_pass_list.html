@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Gate passes | Factory QC{% endblock %}
+{% block content %}
+<h1>Gate pass release</h1>
+<section>
+    <h2>Release a traveler</h2>
+    <p class="muted">Release is blocked until every operation is complete and the latest inspection is approved or conceded.</p>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Release gate pass</button>
+    </form>
+</section>
+<section>
+    <h2>Existing gate passes</h2>
+    {% if gate_passes %}
+        <table>
+            <thead><tr><th>Gate pass</th><th>Traveler</th><th>Status</th><th>Vehicle</th></tr></thead>
+            <tbody>
+            {% for gate_pass in gate_passes %}
+                <tr>
+                    <td>{{ gate_pass.gate_pass_number }}</td>
+                    <td>{{ gate_pass.traveler.traveler_number }}</td>
+                    <td>{{ gate_pass.get_status_display }}</td>
+                    <td>{{ gate_pass.vehicle_number|default:"—" }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="muted">No gate passes yet.</p>
+    {% endif %}
+</section>
+{% endblock %}

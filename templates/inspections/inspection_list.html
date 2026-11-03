@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Inspector checklist | Factory QC{% endblock %}
+{% block content %}
+<h1>Inspector checklist</h1>
+<section>
+    <h2>Start an inspection</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Start inspection</button>
+    </form>
+</section>
+<section>
+    <h2>Inspections in progress</h2>
+    {% if sessions %}
+        <table>
+            <thead><tr><th>Traveler</th><th>Checklist</th><th>Started</th><th></th></tr></thead>
+            <tbody>
+            {% for session in sessions %}
+                <tr>
+                    <td>{{ session.traveler.traveler_number }}</td>
+                    <td>{{ session.template.name }} Rev {{ session.template.revision }}</td>
+                    <td>{{ session.started_at }}</td>
+                    <td><a href="{% url 'inspection-detail' session.pk %}">Continue</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="muted">No inspections in progress.</p>
+    {% endif %}
+</section>
+{% endblock %}
