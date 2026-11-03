@@ -321,12 +321,28 @@ class Measurement(models.Model):
         return self.result
 
     def save(self, *args, **kwargs):
-        # Validate gauge if one is selected
-        if self.gauge:
-            from .services import validate_gauge
+        from .services import validate_gauge
+
+        needs_gauge = (
+            self.template_field.field_type != TemplateField.FieldType.VISUAL
+            and self.measured_value is not None
+        )
+
+        if needs_gauge and not self.gauge_id:
             validate_gauge(self.gauge)
 
-        # Calculate Pass/Fail
+        if self.gauge_id:
+            if self._state.adding:
+                gauge_changed = True
+            else:
+                previous_gauge_id = type(self).objects.filter(pk=self.pk).values_list(
+                    "gauge_id", flat=True
+                ).first()
+                gauge_changed = previous_gauge_id != self.gauge_id
+
+            if gauge_changed:
+                validate_gauge(self.gauge)
+
         self.calculate_result()
         super().save(*args, **kwargs)
 

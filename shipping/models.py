@@ -69,16 +69,21 @@ class GatePass(models.Model):
         traveler = self.traveler
 
         # 1. All operations must be COMPLETED (not just not PENDING)
+        if not traveler.operations.exists():
+            return False, "At least one process operation is required before shipping."
+
         incomplete_ops = traveler.operations.exclude(status="COMPLETED")
         if incomplete_ops.exists():
             return False, "All process operations must be completed before shipping."
 
-        # 2. Must have an APPROVED or CONCESSION final inspection
-        final_ok = traveler.inspection_sessions.filter(
-            status__in=["APPROVED", "CONCESSION"]
-        ).exists()
-
-        if not final_ok:
-            return False, "No approved (or concession) inspection found for this traveler."
+        # 2. The latest inspection must be APPROVED or CONCESSION.
+        latest_inspection = traveler.inspection_sessions.order_by(
+            "-started_at", "-pk"
+        ).first()
+        if latest_inspection is None or latest_inspection.status not in (
+            "APPROVED",
+            "CONCESSION",
+        ):
+            return False, "The latest inspection must be approved or have a concession."
 
         return True, "All quality checks passed."
