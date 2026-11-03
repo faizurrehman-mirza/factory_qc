@@ -298,3 +298,53 @@ class DefectPhoto(models.Model):
 
     def __str__(self):
         return f"Photo for {self.measurement}"
+
+
+class ApprovalRecord(models.Model):
+    """
+    Supervisor decision on an Inspection Session.
+    """
+
+    class Decision(models.TextChoices):
+        APPROVED = "APPROVED", "Approved"
+        REJECTED = "REJECTED", "Rejected"
+        CONCESSION = "CONCESSION", "Conditional Concession"
+
+    session = models.OneToOneField(
+        InspectionSession,
+        on_delete=models.CASCADE,
+        related_name="approval"
+    )
+
+    decision = models.CharField(
+        max_length=20,
+        choices=Decision.choices
+    )
+
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="approvals_made"
+    )
+
+    decision_at = models.DateTimeField(auto_now_add=True)
+
+    comments = models.TextField(
+        blank=True,
+        help_text="Reason for rejection or concession"
+    )
+
+    concession_reason = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Required if decision is Concession"
+    )
+
+    class Meta:
+        verbose_name = "Approval Record"
+        verbose_name_plural = "Approval Records"
+        ordering = ["-decision_at"]
+
+    def __str__(self):
+        return f"{self.session} → {self.decision}"

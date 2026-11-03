@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import ChecklistTemplate, TemplateField
-from .models import InspectionSession, Measurement, DefectPhoto
+from .models import InspectionSession, Measurement, DefectPhoto, ApprovalRecord
 
 
 
@@ -114,3 +114,11 @@ class MeasurementAdmin(admin.ModelAdmin):
 class DefectPhotoAdmin(admin.ModelAdmin):
     list_display = ("measurement", "caption", "uploaded_at")
     readonly_fields = ("uploaded_at",)
+
+
+@admin.register(ApprovalRecord)
+class ApprovalRecordAdmin(admin.ModelAdmin):
+    list_display = ("session", "decision", "decided_by", "decision_at")
+    list_filter = ("decision",)
+    search_fields = ("session__traveler__traveler_number",)
+    readonly_fields = ("decision_at",)
