@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Sign in | Factory QC{% endblock %}
+{% block content %}
+<div class="auth-layout">
+    <section class="auth-card">
+        <h1>Welcome back</h1>
+        <p class="muted" style="text-align:center">Sign in to continue to your quality workbench.</p>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Log in</button>
+        </form>
+    </section>
+</div>
+{% endblock %}

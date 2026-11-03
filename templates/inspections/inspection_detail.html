@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Inspection {{ session.traveler.traveler_number }} | Factory QC{% endblock %}
+{% block content %}
+<h1>{{ session.template.name }} — {{ session.traveler.traveler_number }}</h1>
+<p class="muted">Enter every required checklist value. Failed items require two defect photos.</p>
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% for field in form %}
+        <section>
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<p class="muted">{{ field.help_text }}</p>{% endif %}
+            {{ field.errors }}
+        </section>
+    {% endfor %}
+    <button type="submit">Submit inspection</button>
+</form>
+{% endblock %}

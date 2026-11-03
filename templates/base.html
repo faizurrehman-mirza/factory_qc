@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Factory QC{% endblock %}</title>
+    <style>
+        :root { font-family: system-ui, sans-serif; color: #17212b; background: #f3f6f8; }
+        body { margin: 0; }
+        header { background: #14324a; color: white; padding: 1rem max(1rem, calc((100% - 960px) / 2)); }
+        header a { color: white; margin-right: 1rem; text-decoration: none; }
+        main { max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
+        section, .card { background: white; border: 1px solid #d8e0e6; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
+        label { display: block; font-weight: 600; margin-top: 1rem; }
+        input, select, textarea { box-sizing: border-box; max-width: 100%; padding: .55rem; margin-top: .3rem; }
+        button, .button { display: inline-block; border: 0; border-radius: 5px; background: #176b87; color: white; padding: .65rem 1rem; cursor: pointer; text-decoration: none; }
+        button.danger { background: #a33333; }
+        .muted { color: #526371; }
+        .errorlist { color: #a33333; }
+        .messages { padding: .75rem; background: #e7f2e9; border-radius: 5px; }
+        .auth-layout { min-height: 65vh; display: grid; place-items: center; }
+        .auth-card { width: min(100%, 400px); padding: 2rem; }
+        .auth-card h1 { margin-top: 0; text-align: center; }
+        .auth-card form p { margin: 1.25rem 0; }
+        .auth-card form p label { margin-top: 0; }
+        .auth-card input { width: 100%; }
+        .auth-card button { width: 100%; margin-top: .75rem; }
+        .home-hero { min-height: 65vh; display: grid; place-items: center; text-align: center; }
+        .home-card { max-width: 620px; padding: 3rem 2rem; }
+        .home-card h1 { font-size: clamp(2rem, 5vw, 3.25rem); margin: 0 0 1rem; }
+        .home-card p { color: #526371; font-size: 1.1rem; line-height: 1.6; margin-bottom: 1.5rem; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { padding: .65rem; border-bottom: 1px solid #d8e0e6; text-align: left; }
+    </style>
+</head>
+<body>
+<header>
+    <a href="{% url 'home' %}"><strong>Factory QC</strong></a>
+    {% if user.is_authenticated %}
+        {% if user.role == "FLOOR_INSPECTOR" %}
+            <a href="{% url 'inspection-list' %}">Inspector</a>
+        {% endif %}
+        {% if user.role == "SHIFT_SUPERVISOR" or user.role == "QUALITY_MANAGER" or user.role == "PLANT_MANAGER" %}
+            <a href="{% url 'approval-queue' %}">Approvals</a>
+            <a href="{% url 'gate-pass-list' %}">Gate passes</a>
+        {% endif %}
+        <form method="post" action="{% url 'logout' %}" style="display:inline">
+            {% csrf_token %}
+            <button type="submit">Sign out</button>
+        </form>
+    {% else %}
+        <a href="{% url 'login' %}">Log in</a>
+    {% endif %}
+</header>
+<main>
+    {% if messages %}
+        {% for message in messages %}<p class="messages">{{ message }}</p>{% endfor %}
+    {% endif %}
+    {% block content %}{% endblock %}
+</main>
+</body>
+</html>

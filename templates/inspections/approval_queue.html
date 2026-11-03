@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Supervisor review queue | Factory QC{% endblock %}
+{% block content %}
+<h1>Supervisor review queue</h1>
+<section>
+    {% if sessions %}
+        <table>
+            <thead><tr><th>Traveler</th><th>Checklist</th><th>Inspector</th><th>Submitted</th><th></th></tr></thead>
+            <tbody>
+            {% for session in sessions %}
+                <tr>
+                    <td>{{ session.traveler.traveler_number }}</td>
+                    <td>{{ session.template.name }}</td>
+                    <td>{{ session.inspector }}</td>
+                    <td>{{ session.submitted_at }}</td>
+                    <td><a href="{% url 'approval-detail' session.pk %}">Review</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="muted">No inspections are waiting for review.</p>
+    {% endif %}
+</section>
+{% endblock %}

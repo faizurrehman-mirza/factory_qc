@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Review inspection | Factory QC{% endblock %}
+{% block content %}
+<h1>Review {{ session.traveler.traveler_number }}</h1>
+<p>{{ session.template.name }} — inspector {{ session.inspector }}</p>
+<section>
+    <h2>Measurements</h2>
+    <table>
+        <thead><tr><th>Check</th><th>Value / result</th><th>Outcome</th><th>Gauge</th><th>Photos</th></tr></thead>
+        <tbody>
+        {% for measurement in measurements %}
+            <tr>
+                <td>{{ measurement.template_field.label }}</td>
+                <td>{{ measurement.measured_value|default:measurement.visual_result }}</td>
+                <td>{{ measurement.get_result_display }}</td>
+                <td>{{ measurement.gauge|default:"—" }}</td>
+                <td>{% for photo in measurement.photos.all %}<a href="{{ photo.image.url }}">Photo {{ forloop.counter }}</a>{% empty %}—{% endfor %}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+<section>
+    <h2>Decision</h2>
+    <form method="post">
+        {% csrf_token %}
+        <label for="comments">Comments</label>
+        <textarea name="comments" id="comments" rows="3"></textarea>
+        <label for="concession_reason">Concession reason (required for concession)</label>
+        <textarea name="concession_reason" id="concession_reason" rows="3"></textarea>
+        <p>
+            <button type="submit" name="decision" value="APPROVED">Approve</button>
+            <button type="submit" name="decision" value="REJECTED" class="danger">Reject</button>
+            <button type="submit" name="decision" value="CONCESSION">Grant concession</button>
+        </p>
+    </form>
+</section>
+{% endblock %}
