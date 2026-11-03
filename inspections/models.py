@@ -273,6 +273,57 @@ class Measurement(models.Model):
         verbose_name_plural = "Measurements"
         ordering = ["template_field__sequence"]
 
+    def calculate_result(self):
+        """
+        Automatically decide Pass or Fail based on the template field type
+        and the value entered by the inspector.
+        """
+        field = self.template_field
+
+        # Visual check
+        if field.field_type == TemplateField.FieldType.VISUAL:
+            if self.visual_result == self.Result.PASS:
+                self.result = self.Result.PASS
+            elif self.visual_result == self.Result.FAIL:
+                self.result = self.Result.FAIL
+            else:
+                self.result = self.Result.NA
+            return self.result
+
+        # Dimension check
+        if field.field_type == TemplateField.FieldType.DIMENSION and self.measured_value is not None:
+            upper = field.nominal_value + (field.upper_tolerance or 0)
+            lower = field.nominal_value - (field.lower_tolerance or 0)
+
+            if lower <= self.measured_value <= upper:
+                self.result = self.Result.PASS
+            else:
+                self.result = self.Result.FAIL
+            return self.result
+
+        # Maximum threshold
+        if field.field_type == TemplateField.FieldType.MAX_THRESHOLD and self.measured_value is not None:
+            if self.measured_value <= field.threshold_value:
+                self.result = self.Result.PASS
+            else:
+                self.result = self.Result.FAIL
+            return self.result
+
+        # Minimum threshold
+        if field.field_type == TemplateField.FieldType.MIN_THRESHOLD and self.measured_value is not None:
+            if self.measured_value >= field.threshold_value:
+                self.result = self.Result.PASS
+            else:
+                self.result = self.Result.FAIL
+            return self.result
+
+        self.result = self.Result.NA
+        return self.result
+
+    def save(self, *args, **kwargs):
+        self.calculate_result()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.template_field.label} - {self.result}"
 
