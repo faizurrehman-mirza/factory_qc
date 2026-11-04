@@ -108,7 +108,7 @@ class TemplateField(models.Model):
         decimal_places=3,
         null=True,
         blank=True,
-        help_text="Minus tolerance (e.g. -0.020)"
+        help_text="Minus tolerance as a positive number (e.g. 0.020)"
     )
     unit = models.CharField(
         max_length=20,
